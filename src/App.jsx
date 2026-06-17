@@ -92,8 +92,14 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-linear-to-br ${bgGrad} transition-all duration-1000 p-4 flex flex-col items-center`}>
 
+      {/* Heading */}
+      <div className="text-center mt-10 mb-2">
+        <h1 className="text-4xl font-bold text-white drop-shadow-lg tracking-tight">Weather & Tasks</h1>
+        <p className="text-white/60 text-sm mt-1">Stay on top of your day</p>
+      </div>
+
       {/* Weather Card */}
-      <div className="w-full max-w-md mt-10 mb-6 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-md bg-white/20 border border-white/30 text-white">
+      <div className="w-full max-w-md mt-4 mb-6 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-md bg-white/20 border border-white/30 text-white">
         {wLoading ? (
           <div className="flex items-center justify-center py-14 text-white/70 text-sm animate-pulse">
             Fetching weather…
