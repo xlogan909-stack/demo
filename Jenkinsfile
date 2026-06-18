@@ -9,14 +9,14 @@ pipeline {
             }
         }
 
-        stage("setuping docker network"){
-            steps{
+        stage("Setup Docker Network") {
+            steps {
                 sh "docker network inspect my-network >/dev/null 2>&1 || docker network create my-network"
             }
         }
-        
-        stage("sql connection"){
-            steps{
+
+        stage("SQL Connection") {
+            steps {
                 sh """
                     docker stop mysql || true
                     docker rm mysql || true
@@ -31,25 +31,47 @@ pipeline {
             }
         }
 
-        stage("Build Docker Image") {
+        stage("Build Backend") {
+            steps {
+                sh "docker build -t todo-backend ./backend"
+            }
+        }
+
+        stage("Deploy Backend") {
+            steps {
+                sh """
+                    docker stop todo-backend || true
+                    docker rm todo-backend || true
+                    docker run -d --name todo-backend \
+                        --network my-network \
+                        -e DB_HOST=mysql \
+                        -e DB_USER=root \
+                        -e DB_PASS=root123 \
+                        -e DB_NAME=mydb \
+                        -p 5000:5000 \
+                        todo-backend
+                """
+            }
+        }
+
+        stage("Build Frontend") {
             steps {
                 sh "docker build -t react-app ."
             }
         }
 
-        stage("Stop Existing Container") {
+        stage("Deploy Frontend") {
             steps {
                 sh """
                     docker stop react-app || true
                     docker rm react-app || true
+                    docker run -d --name react-app \
+                        --network my-network \
+                        -p 5173:5173 \
+                        react-app
                 """
             }
         }
 
-        stage("Run Container") {
-            steps {
-                sh "docker run -d --name react-app -p 5173:5173 react-app"
-            }
-        }
     }
 }

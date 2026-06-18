@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const WMO = {
   0:  { label: 'Clear Sky',      icon: '☀️' },
@@ -41,13 +43,14 @@ export default function App() {
   const [wError, setWError]   = useState(null)
   const [wLoading, setWLoading] = useState(true)
 
-  const [todos, setTodos] = useState([
-    { id: 1, text: 'Ship the Vite app to GitHub', done: true },
-    { id: 2, text: 'Set up Jenkins pipeline',     done: false },
-    { id: 3, text: 'Add weather widget',          done: false },
-  ])
+  const [todos, setTodos]   = useState([])
   const [input, setInput]   = useState('')
   const [filter, setFilter] = useState('All')
+
+  const fetchTodos = useCallback(async () => {
+    const res = await fetch(`${API}/api/todos`)
+    setTodos(await res.json())
+  }, [])
 
   useEffect(() => {
     if (!navigator.geolocation) { setWError('Geolocation not supported'); setWLoading(false); return }
@@ -72,15 +75,38 @@ export default function App() {
     )
   }, [])
 
-  const addTodo = (e) => {
+  useEffect(() => { fetchTodos() }, [fetchTodos])
+
+  const addTodo = async (e) => {
     e.preventDefault()
     if (!input.trim()) return
-    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false }])
+    await fetch(`${API}/api/todos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: input.trim() }),
+    })
     setInput('')
+    fetchTodos()
   }
-  const toggle  = (id) => setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t))
-  const remove  = (id) => setTodos(todos.filter(t => t.id !== id))
-  const clearDone = () => setTodos(todos.filter(t => !t.done))
+
+  const toggle = async (id, done) => {
+    await fetch(`${API}/api/todos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: !done }),
+    })
+    fetchTodos()
+  }
+
+  const remove = async (id) => {
+    await fetch(`${API}/api/todos/${id}`, { method: 'DELETE' })
+    fetchTodos()
+  }
+
+  const clearDone = async () => {
+    await Promise.all(todos.filter(t => t.done).map(t => fetch(`${API}/api/todos/${t.id}`, { method: 'DELETE' })))
+    fetchTodos()
+  }
 
   const visible   = todos.filter(t => filter === 'Active' ? !t.done : filter === 'Completed' ? t.done : true)
   const remaining = todos.filter(t => !t.done).length
@@ -166,8 +192,8 @@ export default function App() {
             <li key={todo.id} className="flex items-center gap-3 px-6 py-3.5 group hover:bg-violet-50/50 transition-colors">
               <input
                 type="checkbox"
-                checked={todo.done}
-                onChange={() => toggle(todo.id)}
+                checked={!!todo.done}
+                onChange={() => toggle(todo.id, todo.done)}
                 className="w-4 h-4 accent-violet-600 cursor-pointer shrink-0"
               />
               <span className={`flex-1 text-sm ${todo.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
