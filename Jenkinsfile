@@ -9,6 +9,12 @@ pipeline {
             }
         }
 
+        stage("setuping docker network"){
+            steps{
+                sh "docker network inspect my-network >/dev/null 2>&1 || docker network create my-network"
+            }
+        }
+        
         stage("Build Docker Image") {
             steps {
                 sh "docker build -t react-app ."
