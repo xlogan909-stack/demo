@@ -15,6 +15,22 @@ pipeline {
             }
         }
         
+        stage("sql connection"){
+            steps{
+                sh """
+                    docker stop mysql || true
+                    docker rm mysql || true
+                    docker run -d --name mysql \
+                        --network my-network \
+                        -e MYSQL_ROOT_PASSWORD=root123 \
+                        -e MYSQL_DATABASE=mydb \
+                        -p 3306:3306 \
+                        -v /home/ubuntu/data:/var/lib/mysql \
+                        mysql:latest
+                """
+            }
+        }
+
         stage("Build Docker Image") {
             steps {
                 sh "docker build -t react-app ."
